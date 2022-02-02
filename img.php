@@ -6,9 +6,9 @@ function reqHeaders($arr, $url = null) {
 		$lk = strtolower($k);
 		if($lk == 'host' && isset($url)) {
 			$dom = '';
-			if(startsWith($url, 'http://')) {
+			if(strpos($url, 'http://') === 0) {
 				$dom = substr($url, 7);
-			} else if(startsWith($url, 'https://')) {
+			} else if(strpos($url, 'https://') === 0) {
 				$dom = substr($url, 8);
 			} else {
 				$dom = $url;
@@ -44,7 +44,7 @@ function handleHeaders($str) {
 $url = urldecode($_SERVER['QUERY_STRING']);
 $lu = strtolower($url);
 
-if(strpos($lu, "file:") == 0 || strpos($lu, "ftp:") == 0) {
+if(strpos($lu, "file:") === 0 || strpos($lu, "ftp:") === 0) {
 	return;
 }
 unset($lu);
