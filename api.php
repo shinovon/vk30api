@@ -55,7 +55,15 @@ function error($errcode = 1, $errmsg = "?", $params = null) {
 			array_push($jparams, array('key' => $k, 'value' => $v));
 		}
 	}
-	echo('{"error":{"error_code":'.$errcode.',"error_msg":"'.$errmsg.'","request_params":'.json_encode($jparams, JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES).'}}');
+	echo json_encode(
+		array("error" => 
+			array(
+				"error_code" => $errcode, 
+				"error_msg" => $errmsg, 
+				"request_params" => $jparams
+			)
+		), 
+	JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES);
 	exit();
 }
 function getUrl($url) {
@@ -67,71 +75,73 @@ function getUrl($url) {
 	}
 }
 function parseProfile($usr) {
-	$pr = '{';
+	$r = array();
 	if(property_exists($usr,'first_name')) {
-		$pr .= '"uid":'.$usr->{'id'};
-		if(property_exists($usr,'first_name'))
-			$pr .= ',"first_name":"' . jsonstring($usr->{'first_name'}).'"';
-		if(property_exists($usr,'last_name'))
-			$pr .= ',"last_name":"' . jsonstring($usr->{'last_name'}).'"';
-		if(property_exists($usr,'photo'))
-			$pr .= ',"photo":"' . getUrl($usr->{'photo'}).'"';
-		else if(property_exists($usr,'photo_50'))
-			$pr .= ',"photo":"' . getUrl($usr->{'photo_50'}).'"';
-		if(property_exists($usr,'bdate'))
-			$pr .= ',"bdate":"' . $usr->{'bdate'}.'"';
-		if(property_exists($usr,'activity'))
-			$pr .= ',"activity":"' . jsonstring($usr->{'activity'}).'"';
-		if(property_exists($usr,'sex'))
-			$pr .= ',"sex":' . $usr->{'sex'};
-		/*if(property_exists($usr,'city'))
-			$pr .= ',"city":"' . $usr->{'city'}.'"';*/
-		if(property_exists($usr,'online'))
-			$pr .= ',"online":' . $usr->{'online'};
+		$r['uid'] = $usr->{'id'};
+		if(property_exists($usr,'first_name')) {
+			$r['first_name'] = $usr->{'first_name'};
+		}
+		if(property_exists($usr,'last_name')) {
+			$r['last_name'] = $usr->{'last_name'};
+		}
+		if(property_exists($usr,'photo')) {
+			$r['photo'] = getUrl($usr->{'photo'});
+		} else if(property_exists($usr,'photo_50')) {
+			$r['photo'] = getUrl($usr->{'photo_50'});
+		}
+		if(property_exists($usr,'bdate')) {
+			$r['bdate'] = $usr->{'bdate'};
+		}
+		if(property_exists($usr,'activity')) {
+			$r['activity'] = $usr->{'activity'};
+		}
+		if(property_exists($usr,'sex')) {
+			$r['sex'] = $usr->{'sex'};
+		}
+		/*if(property_exists($usr,'city')) {
+			$r['city'] = $usr->{'city'};
+		}*/
+		if(property_exists($usr,'online')) {
+			$r['online'] =  $usr->{'online'};
+		}
 		if(property_exists($usr,'counters')) {
-			$pr .= ',"counters":{';
 			$counters = $usr->{'counters'};
+			$cr = array();
 			if(property_exists($counters,'albums')) {
-				if(!endsWith($pr,'{')) $pr .= ',';
-				$pr .= '"albums":'.$counters->{'albums'};
+				$cr['albums'] = $counters->{'albums'};
 			}
 			if(property_exists($counters,'audios')) {
-				if(!endsWith($pr,'{')) $pr .= ',';
-				$pr .= '"audios":'.$counters->{'audios'};
+				$cr['audios'] = $counters->{'audios'};
 			}
 			if(property_exists($counters,'followers')) {
-				if(!endsWith($pr,'{')) $pr .= ',';
-				$pr .= '"followers":'.$counters->{'followers'};
+				$cr['followers'] = $counters->{'followers'};
 			}
 			if(property_exists($counters,'friends')) {
-				if(!endsWith($pr,'{')) $pr .= ',';
-				$pr .= '"friends":'.$counters->{'friends'};
+				$cr['friends'] = $counters->{'friends'};
 			}
 			if(property_exists($counters,'online_friends')) {
-				if(!endsWith($pr,'{')) $pr .= ',';
-				$pr .= '"online_friends":'.$counters->{'online_friends'};
+				$cr['online_friends'] = $counters->{'online_friends'};
 			}
 			if(property_exists($counters,'photos')) {
-				if(!endsWith($pr,'{')) $pr .= ',';
-				$pr .= '"user_photos":'.$counters->{'photos'};
+				$cr['user_photos'] = $counters->{'photos'};
 			}
 			if(property_exists($counters,'groups')) {
-				if(!endsWith($pr,'{')) $pr .= ',';
-				$pr .= '"groups":'.$counters->{'groups'};
+				$cr['groups'] = $counters->{'groups'};
 			}
-			$pr .= '}';
+			$r['counters'] = $cr;
 		}
 	} else if(property_exists($usr,'name')) {
-		$pr .= '"gid":'.$usr->{'id'};
-		if(property_exists($usr,'name'))
-			$pr .= ',"name":"' . jsonstring($usr->{'name'}).'"';
-		if(property_exists($usr,'photo'))
-			$pr .= ',"photo":"' . getUrl($usr->{'photo'}).'"';
-		else if(property_exists($usr,'photo_50'))
-			$pr .= ',"photo":"' . getUrl($usr->{'photo_50'}).'"';
+		$r['gid'] = $usr->{'id'};
+		if(property_exists($usr,'name')) {
+			$r['name'] = $usr->{'name'};
+		}
+		if(property_exists($usr,'photo')) {
+			$r['photo'] = getUrl($usr->{'photo'});
+		} else if(property_exists($usr,'photo_50')) {
+			$r['photo'] = getUrl($usr->{'photo_50'});
+		}
 	}
-	$pr .= '}';
-	return $pr;
+	return $r;
 }
 
 // Gives parsed image urls in array
@@ -155,90 +165,91 @@ function parsePhotoSizes($sizes) {
 }
 
 function parseAttachments($atts) {
-	$x = '"attachments":[';
-	$i = 0;
+	$r = array();
 	foreach($atts as $att) {
 		$type = $att->{'type'};
-		$x .= '{"type":"'.$type.'","'.$type.'":{';
+		$a = array();
 		if($type == 'photo' || $type == 'posted_photo' || $type == 'graffiti' || $type == 'app') {
 			$photo = $att->{$type};
-			if(property_exists($photo,'photo_75')) {
-				if(!endsWith($x,'{')) $x .= ',';
-				$x .= '"src_small":"'.getUrl($photo->{'photo_75'}).'"';
-			}
-			if(property_exists($photo,'photo_130')) {
-				if(!endsWith($x,'{')) $x .= ',';
-				$x .= '"src":"'.getUrl($photo->{'photo_130'}).'"';
-			}
+			
 			if(property_exists($photo,'sizes')) {
 				$sizes = parsePhotoSizes($photo->{'sizes'});
 				if(isset($sizes['75p']) && $sizes['75p'] !== null) {
-					if(!endsWith($x,'{')) $x .= ',';
-					$x .= '"src_small":"'.getUrl($sizes['75p']).'"';
+					$a['src_small'] = getUrl($sizes['75p']);
 				}
 				if(isset($sizes['130p']) && $sizes['130p'] !== null) {
-					if(!endsWith($x,'{')) $x .= ',';
-					$x .= '"src":"'.getUrl($sizes['130p']).'"';
+					$a['src'] = getUrl($sizes['130p']);
 				}
 				if(isset($sizes['604p']) && $sizes['604p'] !== null) {
-					if(!endsWith($x,'{')) $x .= ',';
-					$x .= '"src_big":"'.getUrl($sizes['604p']).'"';
+					$a['src_big'] = getUrl($sizes['604p']);
+				}
+			} else {
+				if(property_exists($photo,'photo_75')) {
+					$a['src_small'] = getUrl($photo->{'photo_75'});
+				}
+				if(property_exists($photo,'photo_130')) {
+					$a['arc'] = getUrl($photo->{'photo_130'});
 				}
 			}
 		} else if($type == 'link') {
 			
 		}
-		$x .= '}';
-		$x .= '}';
-		$i++;
-		if($i < count($atts))
-			$x .= ',';
+		$x = array('type' => $type, $type => $a);
 	}
-	$x .= ']';
-	return $x;
+	return $r;
 }
 function parsePost($post) {
-	$x = '{';
-	if(property_exists($post,'from_id'))
-		$x .= '"from_id":'.$post->{'from_id'};
-	else if(property_exists($post,'source_id'))
-		$x .= '"source_id":'.$post->{'source_id'};
-	if(property_exists($post,'type')) {
-		$x .= ',"type":"'.$post->{'type'}.'"';
+	$r = array();
+	if(property_exists($post,'from_id')) {
+		$r['from_id'] = $post->{'from_id'};
+	} else if(property_exists($post, 'source_id')) {
+		$r['source_id'] = $post->{'source_id'};
 	}
-	if(property_exists($post,'id'))
-		$x .= ',"id":'.$post->{'id'};
-	if(property_exists($post,'post_id'))
-		$x .= ',"post_id":'.$post->{'post_id'};
-	if(property_exists($post,'date'))
-		$x .= ',"date":'.$post->{'date'};
-	if(property_exists($post,'text'))
-		$x .= ',"text":"'.jsonstring($post->{'text'}).'"';
+	if(property_exists($post,'type')) {
+		$r['type'] = $post->{'type'};
+	}
+	if(property_exists($post,'id')) {
+		$r['id'] = $post->{'id'};
+	}
+	if(property_exists($post,'post_id')) {
+		$r['post_id'] = $post->{'post_id'};
+	}
+	if(property_exists($post,'date')) {
+		$r['date'] = $post->{'date'};
+	}
+	if(property_exists($post,'text')) {
+		$r['text'] = $post->{'text'};
+	}
 	if(property_exists($post,'likes')) {
-		$x .= ',"likes":{"count":'.$post->{'likes'}->{'count'};
-		if(property_exists($post->{'likes'},'user_likes'))
-			$x .= ',"user_likes":'.$post->{'likes'}->{'user_likes'};
-		$x .= '}';
+		$lr = array();
+		$lr['count'] = $post->{'likes'}->{'count'};
+		if(property_exists($post->{'likes'}, 'user_likes')) {
+			$lr['user_likes'] = $post->{'likes'}->{'user_likes'};
+		}
+		$r['likes'] = $lr;
 	}
 	if(property_exists($post,'comments')) {
-		$x .= ',"comments":{"count":'.$post->{'comments'}->{'count'};
-		if(property_exists($post->{'comments'},'can_post'))
-			$x .= ',"can_post":'.$post->{'comments'}->{'can_post'};
-		$x .= '}';
+		$cr = array();
+		$cr['count'] = $post->{'comments'}->{'count'};
+		if(property_exists($post->{'comments'},'can_post')) {
+			$cr['can_post'] = $post->{'comments'}->{'can_post'};
+		}
+		$r['comments'] = $cr;
 	}
-	if(property_exists($post,'post_source') ) {
+	if(property_exists($post,'post_source')) {
+		$pr = array();
 		$type = $post->{'post_source'}->{'type'};
 		//if($type == 'api')
 		//	$type = 'vk';
-		$x .= ',"post_source":{"type":"'.$type.'"';
-		if(property_exists($post->{'post_source'},'data'))
-			$x .= ',"data":"'.$post->{'post_source'}->{'data'}.'"';
-		$x .= '}';
+		$pr['type'] = $type;
+		if(property_exists($post->{'post_source'},'data')) {
+			$pr['data'] = $post->{'post_source'}->{'data'};
+		}
+		$r['post_source'] = $pr;
 	}
 	if(property_exists($post,'attachments'))
-		$x .= ','.parseAttachments($post->{'attachments'});
-	$x .= '}';
-	return $x;
+		$r["attachments"] = parseAttachments($post->{'attachments'});
+	return $r;
 }
 
 function exceptions_error_handler($severity, $message, $filename, $lineno) {
@@ -298,12 +309,13 @@ try {
 					echo($g);
 					exit();
 				}
+				$x = 0;
 				if(property_exists($json->{'response'},'unread_count')) {
 					$x = $json->{'response'}->{'unread_count'};
 				} else {
 					$x = 0;
 				}
-				echo('{"response":'.$x.'}');
+				echo json_encode(array('response' => $x), JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES);
 				exit();
 			} else error(10, 'messages.get: json_decode() failed\n"'.$g.'"', $PARAMS);
 			break;
@@ -315,7 +327,7 @@ try {
 			$extended = isset($PARAMS['need_messages']) || isset($PARAMS['need_mutual']);
 			$g = get($api.'friends.getRequests?access_token='.$token.'&v='.$apiver.'&need_viewed=1&count='.$count.($extended ? '&extended=1' : ''));
 			$json = json_decode($g);
-			$x = '';
+			$x = array();
 			if($json) {
 				if(property_exists($json,'error')) {
 					echo($g);
@@ -323,33 +335,34 @@ try {
 				}
 				$items = $json->{'response'}->{'items'};
 				if($items) {
-					$i = 0;
 					foreach($items as $usr) {
-						if($extended)
-							$x .= '{"uid":'.$usr->{'user_id'}.'}';
-						else
+						if($extended) {
+							array_push($x, array("uid" => $usr->{'user_id'}));
+						} else {
 							try {
-								$x .= $usr->{'user_id'};
+								array_push($x, $usr->{'user_id'});
 							} catch (Exception $unused) {
-								$x .= $usr;
+								array_push($x);
 							}
-						$i++;
-						if($i < count($items))
-							$x .= ',';
+						}
 					}
 				}
 			} else error(10, 'friends.getRequests: json_decode() failed\n"'.$g.'"', $PARAMS);
-			echo('{"response":['.$x.']}');
+			echo json_encode(array("response" => $x), JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES);
 			exit();
 			break;
 		}
 		case 'getProfiles': {
 			$ids = null;
-			if(isset($PARAMS['uids']))
+			if(isset($PARAMS['uids'])) {
 				$ids = $PARAMS['uids'];
+			} else {
+				error(100, 'required parameter \'uids\' is not set', $PARAMS);
+			}
 			$fields = 'uid';
-			if(isset($PARAMS['fields']))
+			if(isset($PARAMS['fields'])) {
 				$fields = $PARAMS['fields'];
+			}
 			$fields = str_replace('uid', 'user_id', $fields);
 			$fields = str_replace('photo', 'photo,photo_50', $fields);
 			// check if groups and users requested
@@ -368,8 +381,8 @@ try {
 				$uids = substr($uids, 0, strlen($uids)-1);
 				$gids = substr($gids, 0, strlen($gids)-1);
 				
-				$ures = '';
-				$gres = '';
+				$ur = array();
+				$gr = array();
 				// get users
 				if(strlen($uids) > 0){
 					$g = get($api.'getProfiles?access_token='.$token.'&v='.$apiver.'&user_ids='.$uids.'&fields='.$fields);
@@ -381,13 +394,8 @@ try {
 						}
 						$items = $json->{'response'};
 						if($items) {
-							$i = 0;
 							foreach($items as $usr) {
-								$pr = parseProfile($usr);
-								$ures .= $pr;
-								$i++;
-								if($i < count($items))
-									$ures .= ',';
+								array_push($ur, parseProfile($usr));
 							}
 						}
 					} else error(10, 'getProfiles: json_decode() failed\n"'.$g.'"', $PARAMS);
@@ -403,38 +411,20 @@ try {
 						}
 						$items = $json->{'response'};
 						if($items) {
-							$i = 0;
-							foreach($items as $group) {
-								$pr = parseProfile($group);
-								$gres .= $pr;
-								$i++;
-								if($i < count($items))
-									$gres .= ',';
+							foreach($items as $grp) {
+								array_push($gr, parseProfile($grp));
 							}
 						}
 					} else error(10, 'groups.getById: json_decode() failed\n"'.$g.'"', $PARAMS);
 				}
-				$x = '';
-				$hasusers = strlen($ures) > 0;
-				$hasgroups = strlen($gres) > 0;
-				// combine
-				if($hasusers) {
-					$x .= $ures;
-					if($hasgroups) {
-						$x .= ',';
-					}
-				}
-				if($hasgroups) {
-					$x .= $gres;
-				}
-				echo('{"response":['.$x.']}');
+				echo json_encode(array("response" => array_merge($ur, $gr)), JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES);
 				exit();
 				break;
 			}
 			// only users requested
 			$g = get($api.'getProfiles?access_token='.$token.'&v='.$apiver.($ids != null ? ('&user_ids='.$ids) : '').'&fields='.$fields);
 			$json = json_decode($g);
-			$x = '';
+			$x = array();
 			if($json) {
 				if(property_exists($json,'error')) {
 					echo($g);
@@ -442,18 +432,13 @@ try {
 				}
 				$items = $json->{'response'};
 				if($items) {
-					$i = 0;
 					foreach($items as $usr) {
-						$pr = parseProfile($usr);
-						$x .= $pr;
-						$i++;
-						if($i < count($items))
-							$x .= ',';
+						array_push($x, parseProfile($usr));
 					}
 				}
+				echo json_encode(array("response" => $x), JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES);
+				exit();
 			} else error(10, 'getProfiles: json_decode() failed\n"'.$g.'"', $PARAMS);
-			echo('{"response":['.$x.']}');
-			exit();
 			break;
 		}
 		case 'friends.get': {
@@ -476,21 +461,16 @@ try {
 					echo($g);
 					exit();
 				}
-				$x = '';
+				$x = array();
 				$items = $json->{'response'}->{'items'};
 				if($items) {
-					$i = 0;
 					foreach($items as $usr) {
 						if($fields != null)
-							$x .= parseProfile($usr);
-						else $x .= $usr;
-						//$x .= $usr->{'id'};
-						$i++;
-						if($i < count($items))
-							$x .= ',';
+							array_push($x, parseProfile($usr));
+						else array_push($x, $usr);
 					}
 				}
-				echo('{"response":['.$x.']}');
+				echo json_encode(array("response" => $x), JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES);
 				exit();
 			} else error(10, 'friends.get: json_decode() failed\n"'.$g.'"', $PARAMS);
 			break;
@@ -512,22 +492,18 @@ try {
 					echo($g);
 					exit();
 				}
-				$x = '';
+				$x = array();
+				if(property_exists($json->{'response'},'count')) {
+					array_push($x, $json->{'response'}->{'count'});
+				}
 				$items = $json->{'response'}->{'items'};
 				if($items) {
 					$i = 0;
 					foreach($items as $post) {
-						$x .= parsePost($post);
-						$i++;
-						if($i < count($items))
-							$x .= ',';
+						array_push($x, parsePost($post));
 					}
 				}
-				$rescount = null;
-				if(property_exists($json->{'response'},'count')) {
-					$rescount = $json->{'response'}->{'count'};
-				}
-				echo('{"response":['.(isset($rescount)?($rescount.','):'').$x.']}');
+				echo json_encode(array("response" => $x), JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES);
 				exit();
 			} else error(10, 'wall.get: json_decode() failed\n"'.$g.'"', $PARAMS);
 			break;
@@ -543,44 +519,40 @@ try {
 					echo($g);
 					exit();
 				}
-				$x = '';
-				$pr = '';
-				$gr = '';
+				$x = array();
+				$pr = array();
+				$gr = array();
 				if(property_exists($json->{'response'},'profiles')) {
 					$profiles = $json->{'response'}->{'profiles'};
 					if($profiles) {
-						$i = 0;
 						foreach($profiles as $usr) {
-							$pr .= parseProfile($usr);
-							$i++;
-							if($i < count($profiles))
-								$pr .= ',';
+							array_push($pr, parseProfile($usr));
 						}
 					}
 				}
 				if(property_exists($json->{'response'},'groups')) {
 					$groups = $json->{'response'}->{'groups'};
 					if($groups) {
-						$i = 0;
 						foreach($groups as $usr) {
-							$gr .= parseProfile($usr);
-							$i++;
-							if($i < count($groups))
-								$gr .= ',';
+							array_push($gr, parseProfile($usr));
 						}
 					}
 				}
 				$items = $json->{'response'}->{'items'};
 				if($items) {
-					$i = 0;
 					foreach($items as $post) {
-						$x .= parsePost($post);
-						$i++;
-						if($i < count($items))
-							$x .= ',';
+						array_push($x, parsePost($post));
 					}
 				}
-				echo('{"response":{"profiles":['.$pr.'],"groups":['.$gr.'],"items":['.$x.']}}');
+				echo json_encode(
+					array("response" =>
+						array(
+							"items" => $x,
+							"profiles" => $pr,
+							"groups" => $gr
+						)
+					)
+				, JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES);
 				exit();
 			} else error(10, 'newsfeed.get: json_decode() failed\n"'.$g.'"', $PARAMS);
 			break;
@@ -594,79 +566,57 @@ try {
 				$offset = $PARAMS['offset'];
 			$g = get($api.'messages.getConversations?access_token='.$token.'&v='.$apiver.'&count='.$count.'&offset='.$offset);
 			$json = json_decode($g);
-			$x = '';
+			$r = array();
 			if($json) {
 				if(property_exists($json,'error')) {
 					echo($g);
 					exit();
 				}
 				$items = $json->{'response'}->{'items'};
-				$x .= $json->{'response'}->{'count'};
+				array_push($r, $json->{'response'}->{'count'});
 				if($items) {
-					if(count($items) > 0) $x .= ',';
-					$i = 0;
 					foreach($items as $conv) {
 						$type = $conv->{'conversation'}->{'peer'}->{'type'};
 						$uid = $conv->{'conversation'}->{'peer'}->{'id'};
-						$x .= '{';
-						if($PARAMS['api_id'] == '2724548') {
-							if($type == 'chat') {
-								$x .= '"user_id":0';
-								$x .= ',"chat_id":'.($uid-2000000000);
-								$x .= ',"title":"'.jsonstring($conv->{'conversation'}->{'chat_settings'}->{'title'}).'"';
-							} else {
-								$x .= '"user_id":'.$uid;
-							}
+						$x = array();
+						if($type == 'chat') {
+							$x['user_id'] = 0;
+							$x['chat_id'] = $uid-2000000000;
+							$x['title'] = $conv->{'conversation'}->{'chat_settings'}->{'title'};
 						} else {
-							if(intval($uid) < 0) {
-							$x .= '"user_id":'.$uid;
-							} else if(intval($uid) > 2000000000) {
-								$x .= '"chat_id":'.($uid-2000000000);
-								$x .= ',"title":"'.jsonstring($conv->{'conversation'}->{'chat_settings'}->{'title'}).'"';
-							} else {
-								$x .= '"user_id":'.$uid;
-							}
+							$x['user_id'] = $uid;
 						}
-						$b = true;
-						//if(isset($PARAMS['api_id']))
-						//	$b = $PARAMS['api_id'] == '2724548' ? $type == 'user' : true;
 						if(property_exists($conv,'last_message')) {
 							$last = $conv->{'last_message'};
-							$x .= ',"message_id":'.$last->{'id'};
-							$x .= ',"mid":'.$last->{'id'};
-							if(property_exists($last,'from_id'))
-								$x .= ',"uid":'.$last->{'from_id'};
-							if(property_exists($last,'out'))
-								$x .= ',"out":'.$last->{'out'};
-							if(property_exists($last,'date'))
-								$x .= ',"date":'.$last->{'date'};
-							if(property_exists($last,'text'))
-								$x .= ',"body":"'.jsonstring($last->{'text'}).'"';
-							else if(property_exists($last,'attachments')) {
-								$atts = $last->{'attachments'};
-								/*$attc = count($atts);
-								if($attc == 1) {
-									$x .= ',"body":"Вложение"';
-								} else if($attc > 1) {
-									$x .= ',"body":"Вложения ('.$attc.')"';
-								} else {
-									$x .= ',"body":""';
-								}*/
+							$x['mid'] = $last->{'id'};
+							$x['message_id'] = $last->{'id'};
+							if(property_exists($last,'from_id')) {
+								$x['uid'] = $last->{'from_id'};
+							}
+							if(property_exists($last,'out')) {
+								$x['out'] = $last->{'out'};
+							}
+							if(property_exists($last,'date')) {
+								$x['date'] = $last->{'date'};
+							}
+							if(property_exists($last,'text')) {
+								$x['body'] = $last->{'text'};
+							}
+							if(property_exists($last,'attachments')) {
+								$x['attachments'] = $last->{'attachments'};
 							}
 						}
-						if(property_exists($conv->{'conversation'},'unread_count'))
-							$x .= ',"read_state":0';
-						else $x .= ',"read_state":1';
-						$x .= '}';
-						
-						$i++;
-						if($i < count($items) && $b)
-							$x .= ',';
+						if(property_exists($conv->{'conversation'},'unread_count')) {
+							$x['read_state'] = 0;
+						} else {
+							$x['read_state'] = 1;
+						}
+						array_push($r, $x);
 					}
 				}
+				echo json_encode(array('response' => $r), JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES);
+				exit();
 			} else error(10, 'messages.getDialogs: json_decode() failed\n"'.$g.'"', $PARAMS);
-			echo('{"response":['.$x.']}');
-			exit();
 			break;
 		}
 		case 'messages.getHistory': {
@@ -683,58 +633,57 @@ try {
 			$offset = '0';
 			if(isset($PARAMS['offset']))
 				$offset = $PARAMS['offset'];
-			if($peerId == null)
-				error(100, 'parameter \'chat_id\' is undefined', $PARAMS);
-			$g = get($api.'messages.getHistory?access_token='.$token.'&v='.$msgapiver.'&count='.$count.'&peer_id='.$peerId.'&fields=read_state,text,date,from_id,out,attachments');
+			if($peerId == null) {
+				error(100, 'user_id or chat_id is not set', $PARAMS);
+			}
+			$g = get($api.'messages.getHistory?access_token='.$token.'&v='.$msgapiver.'&count='.$count.'&offset='.$offset.'&peer_id='.$peerId.'&fields=read_state,text,date,from_id,out,attachments');
 			$json = json_decode($g);
-			$x = '';
+			$r = array();
 			if($json) {
 				if(property_exists($json,'error')) {
 					echo($g);
 					exit();
 				}
 				$items = $json->{'response'}->{'items'};
-				$x .= $json->{'response'}->{'count'};
-				if($json->{'response'}->{'count'} > 0)
-					$x .= ',';
+				array_push($r, $json->{'response'}->{'count'});
 				if($items) {
-					$i = 0;
 					foreach($items as $msg) {
-						$x .= '{"message_id":'.$msg->{'id'};
+						$x = array();
+						$x['message_id'] = $msg->{'id'};
 						if(property_exists($msg, 'text')) {
-							$x .= ',"body":"'.jsonstring($msg->{'text'}).'"';
+							$x['body'] = $msg->{'text'};
 						} else if(property_exists($msg, 'body')) {
-							$x .= ',"body":"'.jsonstring($msg->{'body'}).'"';
+							$x['body'] = $msg->{'body'};
 						}
-						if(property_exists($msg,'from_id'))
-							$x .= ',"from_id":'.$msg->{'from_id'};
-						if(property_exists($msg,'date'))
-							$x .= ',"date":'.$msg->{'date'};
+						if(property_exists($msg,'from_id')) {
+							$x['from_id'] = $msg->{'from_id'};
+						}
+						if(property_exists($msg,'date')) {
+							$x['date'] = $msg->{'date'};
+						}
 						if(property_exists($msg,'read_state')) {
-							$x .= ',"read_state":'.$msg->{'read_state'};
+							$x['read_state'] = $msg->{'read_state'};
 						} else {
-							$x .= ',"read_state":1';
+							$x['read_state'] = 1;
 						}
 						if(property_exists($msg,'out')) {
-							$x .= ',"out":'.$msg->{'out'};
+							$x['out'] = $msg->{'out'};
 						}
-						if(property_exists($msg,'attachments'))
-							$x .= ','.parseAttachments($msg->{'attachments'});
-						$x .= '}';
-						$i++;
-						if($i < count($items))
-							$x .= ',';
+						if(property_exists($msg,'attachments')) {
+							$x['attachments'] = parseAttachments($msg->{'attachments'});
+						}
+						array_push($r, $x);
 					}
 				}
+				echo json_encode(array('response' => $r), JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES);
+				exit();
 			} else error(10, 'messages.getHistory: json_decode() failed\n"'.$g.'"', $PARAMS);
-			echo('{"response":['.$x.']}');
-			exit();
 			break;
 		}
 		case 'friends.add': {
 			if(isset($PARAMS['uid'])) {
 				$uid = $PARAMS['uid'];
-				$x = '0';
+				$x = array();
 				$g = get($api.'friends.add?access_token='.$token.'&v='.$apiver.'&user_id='.$uid);
 				$json = json_decode($g);
 				if($json) {
@@ -742,17 +691,16 @@ try {
 						echo($g);
 						exit();
 					}
-					$x = $json->{'response'};
+					echo json_encode(array('response' => $json->{'response'}), JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES);
+					exit();
 				} else error(10, 'friends.add: json_decode() failed\n"'.$g.'"', $PARAMS);
-				echo('{"response":'.$x.'}');
-				exit();
 			} else error(100, '"uid" param is not set', $PARAMS);
 			break;
 		}
 		case 'friends.delete': {
 			if(isset($PARAMS['uid'])) {
 				$uid = $PARAMS['uid'];
-				$x = '0';
+				$x = 0;
 				$g = get($api.'friends.delete?access_token='.$token.'&v='.$apiver.'&user_id='.$uid);
 				$json = json_decode($g);
 				if($json) {
@@ -760,23 +708,23 @@ try {
 						echo($g);
 						exit();
 					}
-					$x = $json->{'response'};
-					if($x == 'success' || $x == 'friend_deleted')
-						$x = '1';
-					else if($x == 'out_request_deleted' || $x == 'in_request_deleted')
-						$x = '2';
-					else if($x == 'suggestion_deleted')
-						$x = '3';
+					$s = $json->{'response'};
+					if($s == 'success' || $s == 'friend_deleted') {
+						$x = 1;
+					} else if($s == 'out_request_deleted' || $s == 'in_request_deleted') {
+						$x = 2;
+					} else if($s == 'suggestion_deleted') {
+						$x = 3;
+					}
+					echo json_encode(array('response' => $x), JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES);
+					exit();
 				} else error(10, 'friends.delete: json_decode() failed\n"'.$g.'"', $PARAMS);
-				echo('{"response":'.$x.'}');
-				exit();
 			} else error(100, '"uid" param is not set', $PARAMS);
 			break;
 		}
 		case 'status.set': {
 			if(isset($PARAMS['text'])) {
 				$text = $PARAMS['text'];
-				$x = '0';
 				$g = get($api.'status.set?access_token='.$token.'&v='.$apiver.'&text='.$text);
 				$json = json_decode($g);
 				if($json) {
@@ -784,10 +732,9 @@ try {
 						echo($g);
 						exit();
 					}
-					$x = $json->{'response'};
+					echo json_encode(array('response' => $json->{'response'}), JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES);
+					exit();
 				} else error(10, 'status.set: json_decode() failed\n"'.$g.'"', $PARAMS);
-				echo('{"response":'.$x.'}');
-				exit();
 			} else error(100, '"text" param is not set', $PARAMS);
 			break;
 		}
@@ -796,14 +743,15 @@ try {
 				if(isset($PARAMS['user_id']) || isset($PARAMS['chat_id']) || isset($PARAMS['uid']) || isset($PARAMS['cid'])) {
 					$message = $PARAMS['message'];
 					$peerid = null;
-					if(isset($PARAMS['user_id']))
+					if(isset($PARAMS['user_id'])) {
 						$peerid = $PARAMS['user_id'];
-					if(isset($PARAMS['chat_id']))
+					} else if(isset($PARAMS['chat_id'])) {
 						$peerid = $PARAMS['chat_id'];
-					if(isset($PARAMS['uid']))
+					} else if(isset($PARAMS['uid'])) {
 						$peerid = $PARAMS['uid'];
-					if(isset($PARAMS['cid']))
+					} else if(isset($PARAMS['cid'])) {
 						$peerid = $PARAMS['cid'];
+					}
 					$x = '0';
 					$g = get($api.'messages.send?access_token='.$token.'&v='.$apiver.'&message='.$message.'&peer_id='.$peerid.'&random_id='.strval(rand(1,100)));
 					$json = json_decode($g);
@@ -812,10 +760,9 @@ try {
 							echo($g);
 							exit();
 						}
-						$x = $json->{'response'};
+						echo json_encode(array('response' => $json->{'response'}), JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES);
+						exit();
 					} else error(10, 'messages.send: json_decode() failed\n"'.$g.'"', $PARAMS);
-					echo('{"response":'.$x.'}');
-					exit();
 				} else error(100, '"chat_id" param is not set', $PARAMS);
 			} else error(100, '"message" param is not set', $PARAMS);
 			break;
